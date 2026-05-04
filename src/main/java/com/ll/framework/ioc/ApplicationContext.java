@@ -126,19 +126,29 @@ public class ApplicationContext {
 
     private Object invokeBeanMethod(Object configInstance, Method method) {
         try {
-            // 파라미터 있는 @Bean은 아직 처리 안함
-            if (method.getParameterCount() > 0) {
-                return null;
+            method.setAccessible(true);
+
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            Object[] args = new Object[parameterTypes.length];
+
+            for (int i = 0; i < parameterTypes.length; i++) {
+                args[i] = getBeanByType(parameterTypes[i]);
             }
 
-            //접근 가능하게 변경
-            method.setAccessible(true);
-            //파라미터 없는 @Bean 실행
-            return method.invoke(configInstance);
+            return method.invoke(configInstance, args);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+    private Object getBeanByType(Class<?> type) {
+        for (Object bean : beans.values()) {
+            if (type.isInstance(bean)) {
+                return bean;
+            }
+        }
+
+        return null;
     }
 
     private String getBeanName(Class<?> clazz) {
