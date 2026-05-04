@@ -1,5 +1,6 @@
 package com.ll.framework.ioc;
 
+import com.ll.framework.ioc.annotations.Bean;
 import com.ll.framework.ioc.annotations.Component;
 import com.ll.framework.ioc.annotations.Configuration;
 import com.ll.framework.ioc.annotations.Repository;
@@ -7,6 +8,7 @@ import com.ll.framework.ioc.annotations.Service;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +30,8 @@ public class ApplicationContext {
         for (Class<?> clazz : componentClasses) {
             createBean(clazz);
         }
+
+        processConfigurationBeans();
     }
 
     public <T> T genBean(String beanName) {
@@ -89,6 +93,52 @@ public class ApplicationContext {
         }
 
         return args;
+    }
+
+    private void processConfigurationBeans() {
+        Reflections reflections = new Reflections(basePackage);
+
+        Set<Class<?>> configClasses =
+                reflections.getTypesAnnotatedWith(Configuration.class);
+
+        for (Class<?> configClass : configClasses) {
+            Object configInstance = createBean(configClass);
+            processBeanMethods(configInstance, configClass);
+        }
+    }
+
+    private void processBeanMethods(Object configInstance, Class<?> configClass) {
+        for (Method method : configClass.getDeclaredMethods()) {
+
+            //@Bean 붙은 메서드만 처리
+            if (method.isAnnotationPresent(Bean.class)) {
+
+                Object bean = invokeBeanMethod(configInstance, method);
+
+                // invoke 결과가 null이면 등록 X
+                if (bean != null) {
+                    //메서드 이름이 Bean 이름이 됨
+                    beans.put(method.getName(), bean);
+                }
+            }
+        }
+    }
+
+    private Object invokeBeanMethod(Object configInstance, Method method) {
+        try {
+            // 파라미터 있는 @Bean은 아직 처리 안함
+            if (method.getParameterCount() > 0) {
+                return null;
+            }
+
+            //접근 가능하게 변경
+            method.setAccessible(true);
+            //파라미터 없는 @Bean 실행
+            return method.invoke(configInstance);
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private String getBeanName(Class<?> clazz) {

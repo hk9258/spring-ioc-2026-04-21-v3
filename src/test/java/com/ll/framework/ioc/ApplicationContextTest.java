@@ -102,4 +102,5 @@ public class ApplicationContextTest {
 
         assertThat(testBaseObjectMapper).isNotNull();
     }
+
 }
