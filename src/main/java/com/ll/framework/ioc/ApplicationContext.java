@@ -128,18 +128,24 @@ public class ApplicationContext {
         try {
             method.setAccessible(true);
 
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            Object[] args = new Object[parameterTypes.length];
-
-            for (int i = 0; i < parameterTypes.length; i++) {
-                args[i] = getBeanByType(parameterTypes[i]);
-            }
+            Object[] args = createBeanMethodArgs(method);
 
             return method.invoke(configInstance, args);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Object[] createBeanMethodArgs(Method method) {
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        Object[] args = new Object[parameterTypes.length];
+
+        for (int i = 0; i < parameterTypes.length; i++) {
+            args[i] = getBeanByType(parameterTypes[i]);
+        }
+
+        return args;
     }
     private Object getBeanByType(Class<?> type) {
         for (Object bean : beans.values()) {
